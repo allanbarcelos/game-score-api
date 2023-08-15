@@ -30,7 +30,7 @@ jobs:
             sudo dpkg -L libasio-dev
 
       - name: Build
-        run: g++ -std=c++11 -I/opt/websocketpp ./game-score-api.cpp -o ./game-score-api
+        run: g++ -std=c++11 -I/opt/websocketpp -I/usr/include/uuid -I/usr/include/nlohmann ./game-score-api.cpp -o ./game-score-api
 
       - name: Install SSH Key
         uses: shimataro/ssh-key-action@v2
