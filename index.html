@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Game Client</title>
+</head>
+<body>
+    <h1>WebSocket Game Client</h1>
+
+    <div>
+        <button onclick="registerUser()">Register</button>
+        <input type="text" id="username" placeholder="Username (5 chars)" maxlength="5">
+        <input type="text" id="gameId" placeholder="Game ID">
+    </div>
+
+    <div>
+        <button onclick="getScores()">Get Scores</button>
+        <input type="text" id="getScoresGameId" placeholder="Game ID">
+
+    </div>
+
+    <div>
+        <button onclick="setScore()">Set Score</button>
+        <input type="text" id="userId" placeholder="User ID">
+    </div>
+
+    <div>
+        <button onclick="getScoreById()">Get Score By ID</button>
+        <input type="text" id="searchUserId" placeholder="Search User ID">
+    </div>
+
+    <div>
+        <h2>Server Response:</h2>
+        <pre id="serverResponse"></pre>
+    </div>
+
+    <script>
+        let ws = new WebSocket("ws://localhost:9900");
+
+        ws.onopen = function() {
+            console.log("Connected to the WebSocket server.");
+        };
+
+        ws.onmessage = function(event) {
+            let serverResponse = document.getElementById('serverResponse');
+            serverResponse.textContent = event.data;
+        };
+
+        ws.onerror = function(error) {
+            console.error("WebSocket Error: ", error);
+        }
+
+        function registerUser() {
+            const username = document.getElementById('username').value;
+            const gameId = document.getElementById('gameId').value;
+
+            if (username.length !== 5) {
+                alert('Username should be exactly 5 characters.');
+                return;
+            }
+
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(`/register ${username} ${gameId}`);
+            }
+        }
+
+        function getScores() {
+            const getScoresGameId = document.getElementById('getScoresGameId').value;
+
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(`/get-scores ${getScoresGameId}`);
+            }
+        }
+
+        function setScore() {
+            const userId = document.getElementById('userId').value;
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(`/set-score ${userId}`);
+            }
+        }
+
+        function getScoreById() {
+            const searchUserId = document.getElementById('searchUserId').value;
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(`/get-score-by-id ${searchUserId}`);
+            }
+        }
+    </script>
+</body>
+</html>

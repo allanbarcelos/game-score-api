@@ -1,0 +1,55 @@
+# Arquivos de objeto e link
+*.o
+*.a
+*.so
+*.dll
+*.dylib
+*.out
+*.exe
+
+# Pastas e arquivos de build
+build/
+Debug/
+Release/
+*.dSYM/
+
+# Arquivos temporários
+*.swp
+*.swo
+*~
+*.bak
+
+# Arquivos criados por ferramentas de desenvolvimento
+.ccls-cache/
+.cquery_cached_index/
+.vscode/
+*.code-workspace
+*.sln
+*.suo
+*.user
+*.ncb
+*.obj
+*.lib
+*.log
+*.pch
+*.idb
+*.pdb
+*.ilk
+*.aps
+*.err
+*.tlog
+*.clw
+*.filters
+*.opensdf
+*.ipch
+*_i.c
+*_p.c
+*.lst
+*.db
+*.db-wal
+*.db-shm
+
+# Outros
+.DS_Store
+Thumbs.db
+
