@@ -12,6 +12,8 @@
 #include <websocketpp/server.hpp>
 #include <nlohmann/json.hpp>
 
+#define PORT 9900
+
 typedef websocketpp::server<websocketpp::config::asio> server;
 
 struct User {
@@ -163,7 +165,7 @@ int main() {
         std::cout << "Client disconnected with connection_hdl: " << hdl.lock().get() << std::endl;
     });
     
-    print_server.listen(9900);
+    print_server.listen(PORT);
     print_server.start_accept();
     print_server.run();
 }

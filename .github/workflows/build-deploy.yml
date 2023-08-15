@@ -4,46 +4,28 @@ on:
   push:
     branches:
       - main
-  # schedule:
-  #   - cron: '0 0 * * *'
-
-env:
-  PRODUCTION: true
-  # HTTPS: true
-  # API: https://api.barcelos.dev
 
 jobs:
   test-build-deploy:
 
     runs-on: ubuntu-latest
 
-    strategy:
-      matrix:
-        node-version:
-          - 16.x
-
     steps:
       - uses: actions/checkout@v3
 
-      # - name: Set up Firefox profile
-      #   run: |
-      #     mkdir -p $HOME/.mozilla/firefox/profiles
-      #     echo 'user_pref("webgl.force-enabled", true);' >> $HOME/.mozilla/firefox/profiles/prefs.js
-      #     echo 'user_pref("gfx.webrender.force-disabled", true);' >> $HOME/.mozilla/firefox/profiles/prefs.js
-      #     echo 'user_pref("layers.acceleration.force-enabled", true);' >> $HOME/.mozilla/firefox/profiles/prefs.js
+      - run: |
+            apt update
+            apt install -y build-essential
+            apt install -y uuid-dev
+            git clone https://github.com/zaphoyd/websocketpp.git /opt/websocketpp
+            ls -lha /opt
+            ls -lha /opt/websocketpp
+            apt install -y nlohmann-json3-dev
+            apt install -y libasio-dev
+            apt install -y cmake
+            apt install -y g++
 
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-
-      - uses: GuillaumeFalourd/setup-rsync@v1.1
-
-      - run: npm ci
-      # - run: npm run test:prod
-      - run: npm run lint
-      - run: npm run build --aot --base-href=/
+      - run: g++ -std=c++11 -I/opt/websocketpp ./game-score-api.cpp -o ./game-score-api
 
       - name: Install SSH Key
         uses: shimataro/ssh-key-action@v2
@@ -57,7 +39,7 @@ jobs:
       - name: Test SSH connection
         run: ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
 
-      - name: Delete OLD Folder
+      - name: Stop Current Service
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -65,30 +47,26 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            folder="${{secrets.HOME}}/barcelos.dev"
-            if [ -d "$folder" ]; then
-              rm -Rf ${{ secrets.HOME }}/barcelos.dev
-            fi
+            ps aux | grep "game-score-api" | grep -v grep | awk '{print $2}' | while read pid; do [ -n "$pid" ] && kill "$pid"; done
 
-      # - name: Stop SRV-PROXY and delete OLD Image
-      #   uses: appleboy/ssh-action@master
-      #   with:
-      #     host: ${{ secrets.SSH_HOST }}
-      #     username: ${{ secrets.SSH_USER }}
-      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
-      #     port: ${{ secrets.SSH_PORT }}
-      #     script: |
-      #       folder="${{secrets.HOME}}/srv-proxy"
-      #       if [ -d "$folder" ]; then
-      #         cd ${{ secrets.HOME }}/srv-proxy
-      #         docker-compose down -v --rmi www_barcelos
-      #       fi
+      - name: Delete OLD File
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            file="${{ secrets.HOME }}/game-score-api"
+            if [ -f "$file" ]; then
+              rm -f "$file"
+            fi
 
       - name: Deploy with rsync
         run: |
-          rsync --progress -avz -e "ssh -v -i ~/.ssh/id_rsa" ./dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.HOME }}/barcelos.dev/
+          rsync --progress -avz -e "ssh -v -i ~/.ssh/id_rsa" ./game-score-api ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.HOME }}/
 
-      - name: Restart Nginx
+      - name: Restart The API
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -96,4 +74,5 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
           script: |
-            systemctl restart nginx
+            chmod +x ${{ secrets.HOME }}/game-score-api
+            nohup ${{ secrets.HOME }}/game-score-api >> /var/log/game-score-api.log 2>&1 &
