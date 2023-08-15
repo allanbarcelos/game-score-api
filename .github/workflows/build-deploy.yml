@@ -13,6 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Install DEV Dependencies
       - run: |
             sudo apt update
             sudo apt install -y build-essential
@@ -24,7 +25,11 @@ jobs:
             sudo apt install -y libasio-dev
             sudo apt install -y cmake
             sudo apt install -y g++
+            sudo dpkg -L uuid-dev
+            sudo dpkg -L nlohmann-json3-dev
+            sudo dpkg -L libasio-dev
 
+      - name: Build
       - run: g++ -std=c++11 -I/opt/websocketpp ./game-score-api.cpp -o ./game-score-api
 
       - name: Install SSH Key
