@@ -18,6 +18,7 @@ jobs:
             sudo apt update
             sudo apt install -y build-essential
             sudo apt install -y uuid-dev
+            sudo apt install -y libuuid
             sudo git clone https://github.com/zaphoyd/websocketpp.git /opt/websocketpp
             sudo ls -lha /opt
             sudo ls -lha /opt/websocketpp
@@ -30,7 +31,7 @@ jobs:
             sudo dpkg -L libasio-dev
 
       - name: Build
-        run: g++ -std=c++11 -luuid -I/opt/websocketpp -I/usr/include/uuid -I/usr/include/nlohmann ./game-score-api.cpp -o ./game-score-api
+        run: g++ -std=c++11 -I/opt/websocketpp -I/usr/include/uuid -I/usr/include/nlohmann ./game-score-api.cpp -o ./game-score-api -luuid
 
       - name: Install SSH Key
         uses: shimataro/ssh-key-action@v2
