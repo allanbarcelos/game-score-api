@@ -48,6 +48,36 @@ bool usernameExists(const std::string &game_id, const std::string &username) {
     return false;
 }
 
+bool isValidUsername(const std::string &username) {
+    // Check length
+    if (username.size() != 5) {
+        return false;
+    }
+
+    // Check if all characters are alphanumeric
+    for (char c : username) {
+        if (!std::isalnum(c)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool isValidGameID(const std::string &game_id) {
+    // Check length (for this example, I'm assuming a valid game_id has a length of at least 1)
+    if (game_id.empty()) {
+        return false;
+    }
+
+    // Check if all characters are alphanumeric (you can adjust this as per your requirements)
+    for (char c : game_id) {
+        if (!std::isalnum(c)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool compareUsers(const User &a, const User &b) {
     return a.score > b.score;
 }
@@ -88,15 +118,23 @@ void on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr 
 
         std::string username = payload.substr(10, 5); // Assuming the username follows after "/register "
 
-        if (username.length() != 5) {
+        if (!isValidUsername(username)) {
             response["status"] = "error";
-            response["message"] = "Username should have exactly 5 characters!";
+            response["message"] = "Invalid username! Username should be 5 alphanumeric characters.";
             s->send(hdl, response.dump(), msg->get_opcode());
             return;
         }
 
         // Check if username is unique within the game_id (assuming a game_id is also part of the payload)
         std::string game_id = payload.substr(16); // Adjust accordingly based on your payload format
+
+        if (!isValidGameID(game_id)) {
+            response["status"] = "error";
+            response["message"] = "Invalid game_id! Game ID should be alphanumeric.";
+            s->send(hdl, response.dump(), msg->get_opcode());
+            return;
+        }
+
         if (usernameExists(game_id, username)) {
             response["status"] = "error";
             response["message"] = "Username already exists for this game!";
