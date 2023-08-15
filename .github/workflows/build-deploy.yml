@@ -14,16 +14,16 @@ jobs:
       - uses: actions/checkout@v3
 
       - run: |
-            apt update
-            apt install -y build-essential
-            apt install -y uuid-dev
-            git clone https://github.com/zaphoyd/websocketpp.git /opt/websocketpp
-            ls -lha /opt
-            ls -lha /opt/websocketpp
-            apt install -y nlohmann-json3-dev
-            apt install -y libasio-dev
-            apt install -y cmake
-            apt install -y g++
+            sudo apt update
+            sudo apt install -y build-essential
+            sudo apt install -y uuid-dev
+            sudo git clone https://github.com/zaphoyd/websocketpp.git /opt/websocketpp
+            sudo ls -lha /opt
+            sudo ls -lha /opt/websocketpp
+            sudo apt install -y nlohmann-json3-dev
+            sudo apt install -y libasio-dev
+            sudo apt install -y cmake
+            sudo apt install -y g++
 
       - run: g++ -std=c++11 -I/opt/websocketpp ./game-score-api.cpp -o ./game-score-api
 
