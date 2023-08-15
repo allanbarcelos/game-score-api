@@ -5,6 +5,12 @@
 
 This project is a basic WebSocket server that allows user registration, maintenance of their scores, and querying scores for a specific game.
 
+## How To RUN
+
+### Change the command according to your needs
+
+g++ -std=c++11 -I/opt/homebrew/include/ game-score-api.cpp -o game-score-api && ./game-score-api
+
 ## Dependencies
 
 - **WebSocket++**: Library to handle WebSocket connections.

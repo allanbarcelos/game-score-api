@@ -4,6 +4,12 @@ Português | [English](README.md)
 
 Este projeto é um servidor WebSocket básico que permite o registro de usuários, a manutenção de suas pontuações e a consulta de pontuações para um jogo específico.
 
+## Como rodar
+
+### Altere de acordo com suas necessidades
+
+g++ -std=c++11 -I/opt/homebrew/include/ game-score-api.cpp -o game-score-api && ./game-score-api
+
 ## Dependências
 
 - **WebSocket++**: Biblioteca para lidar com conexões WebSocket.
