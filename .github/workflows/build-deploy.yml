@@ -1,0 +1,99 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+  # schedule:
+  #   - cron: '0 0 * * *'
+
+env:
+  PRODUCTION: true
+  # HTTPS: true
+  # API: https://api.barcelos.dev
+
+jobs:
+  test-build-deploy:
+
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version:
+          - 16.x
+
+    steps:
+      - uses: actions/checkout@v3
+
+      # - name: Set up Firefox profile
+      #   run: |
+      #     mkdir -p $HOME/.mozilla/firefox/profiles
+      #     echo 'user_pref("webgl.force-enabled", true);' >> $HOME/.mozilla/firefox/profiles/prefs.js
+      #     echo 'user_pref("gfx.webrender.force-disabled", true);' >> $HOME/.mozilla/firefox/profiles/prefs.js
+      #     echo 'user_pref("layers.acceleration.force-enabled", true);' >> $HOME/.mozilla/firefox/profiles/prefs.js
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - uses: GuillaumeFalourd/setup-rsync@v1.1
+
+      - run: npm ci
+      # - run: npm run test:prod
+      - run: npm run lint
+      - run: npm run build --aot --base-href=/
+
+      - name: Install SSH Key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          known_hosts: unnecessary
+
+      - name: Adding Known Hosts
+        run: ssh-keyscan -p ${{ secrets.SSH_PORT }} -H ${{ secrets.SSH_HOST }}  >> ~/.ssh/known_hosts
+
+      - name: Test SSH connection
+        run: ssh -T ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
+
+      - name: Delete OLD Folder
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            folder="${{secrets.HOME}}/barcelos.dev"
+            if [ -d "$folder" ]; then
+              rm -Rf ${{ secrets.HOME }}/barcelos.dev
+            fi
+
+      # - name: Stop SRV-PROXY and delete OLD Image
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.SSH_HOST }}
+      #     username: ${{ secrets.SSH_USER }}
+      #     key: ${{ secrets.SSH_PRIVATE_KEY }}
+      #     port: ${{ secrets.SSH_PORT }}
+      #     script: |
+      #       folder="${{secrets.HOME}}/srv-proxy"
+      #       if [ -d "$folder" ]; then
+      #         cd ${{ secrets.HOME }}/srv-proxy
+      #         docker-compose down -v --rmi www_barcelos
+      #       fi
+
+      - name: Deploy with rsync
+        run: |
+          rsync --progress -avz -e "ssh -v -i ~/.ssh/id_rsa" ./dist/ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.HOME }}/barcelos.dev/
+
+      - name: Restart Nginx
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            systemctl restart nginx
