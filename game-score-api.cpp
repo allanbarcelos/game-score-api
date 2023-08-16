@@ -5,9 +5,11 @@
 #include <set>
 #include <algorithm>
 #include <ctime>
+#include <random>
+#include <sstream>
+#include <iomanip>
 
 // Third-Party Libraries
-#include <uuid/uuid.h>
 #include <websocketpp/config/asio_no_tls.hpp>
 #include <websocketpp/server.hpp>
 #include <nlohmann/json.hpp>
@@ -30,12 +32,31 @@ std::vector<User> users;
 
 std::set<websocketpp::connection_hdl, std::owner_less<websocketpp::connection_hdl>> connection_list;
 
-std::string generateUUID() {
-    uuid_t uuid;
-    uuid_generate_random(uuid);
-    char s[37];
-    uuid_unparse(uuid, s);
-    return std::string(s);
+
+// RFC4122
+std::string generateUUIDv4() {
+    std::random_device rd;
+    std::mt19937 rng(rd());
+    std::uniform_int_distribution<std::uint32_t> uni(0, std::numeric_limits<std::uint32_t>::max());
+
+    std::uint32_t randomData[4];
+    for (int i = 0; i < 4; ++i) {
+        randomData[i] = uni(rng);
+    }
+
+    randomData[1] = (randomData[1] & 0xFFFF0FFF) | 0x00004000; // set version to 0100, the version of the UUID is stored in bits 12 to 15 of the third group of 16 bits of the UUID
+    randomData[2] = (randomData[2] & 0x3FFFFFFF) | 0x80000000; // set variant to 10xx, Combining the two operations, we are ensuring that the first two bits of randomData[2] are 10.
+
+    std::stringstream ss;
+    ss << std::hex << std::setfill('0');
+    ss << std::setw(8) << randomData[0] << '-';
+    ss << std::setw(4) << ((randomData[1] & 0xFFFF0000) >> 16) << '-';
+    ss << std::setw(4) << (randomData[1] & 0x0000FFFF) << '-';
+    ss << std::setw(4) << ((randomData[2] & 0xFFFF0000) >> 16) << '-';
+    ss << std::setw(4) << (randomData[2] & 0x0000FFFF);
+    ss << std::setw(8) << randomData[3];
+
+    return ss.str();
 }
 
 // New function to check if a username within a game_id exists
@@ -108,6 +129,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr 
     std::string payload = msg->get_payload();
 
     if (payload.substr(0, 9) == "/register") { 
+        response["payload"] = "register";
 
         if (payload.length() < 16) {
             response["status"] = "error";
@@ -143,7 +165,7 @@ void on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr 
         }
 
         User user;
-        user.id = generateUUID();
+        user.id = generateUUIDv4();
         user.game_id = game_id; // Assign the game_id
         user.hdl = hdl; // Salva o connection_hdl no struct User
         user.username = username;  // In a real scenario, extract from payload
@@ -158,12 +180,17 @@ void on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr 
         s->send(hdl, response.dump(), msg->get_opcode());
 
     } else if (payload.substr(0, 11) == "/get-scores") {
+        response["payload"] = "get-scores";
 
         std::string game_id = payload.substr(12);  // Isso pressupõe que depois de "/get-scores" exista um espaço seguido pelo game_id.
         
-        s->send(hdl, getScoresByGameID(game_id).dump(), msg->get_opcode());
+        response["data"] = getScoresByGameID(game_id);
+
+        s->send(hdl, response.dump(), msg->get_opcode());
 
     } else if (payload.substr(0, 10) == "/set-score") {
+        response["payload"] = "set-score";
+
         std::string id = payload.substr(11); 
         std::string game_id;
 
@@ -175,13 +202,15 @@ void on_message(server* s, websocketpp::connection_hdl hdl, server::message_ptr 
             }
         }
 
+        response["data"] = getScoresByGameID(game_id);
+
         std::vector<User> conn_users;
         std::copy_if(users.begin(), users.end(), std::back_inserter(conn_users), [&game_id](const User& u) {
             return u.game_id == game_id;
         });
         
         for (auto& user : conn_users) {
-            s->send(user.hdl, getScoresByGameID(game_id).dump(), msg->get_opcode());
+            s->send(user.hdl, response.dump(), msg->get_opcode());
         }
     }
 
