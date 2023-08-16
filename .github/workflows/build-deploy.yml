@@ -80,4 +80,5 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             chmod +x ${{ secrets.HOME }}/game-score-api
+            while lsof -i :9900 &>/dev/null; do sleep 2; done
             nohup ${{ secrets.HOME }}/game-score-api >> /var/log/game-score-api.log 2>&1 &
