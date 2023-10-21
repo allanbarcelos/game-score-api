@@ -61,3 +61,5 @@ g++ -std=c++11 -I/opt/homebrew/include/ game-score-api.cpp -o game-score-api && 
 ## Contributions
 
 Feel free to contribute to this project by adding more features, fixing bugs, or improving the documentation.
+
+##
